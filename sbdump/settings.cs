@@ -2,9 +2,10 @@
 using System.IO;
 
 namespace arookas {
-	class CommandLineSettings {
+	class CommandLineSettings
+    {
 		string mInput, mOutput;
-		bool mOutputHeader, mOutputText, mOutputData, mOutputSym, mOutputVars;
+		bool mOutputHeader, mOutputText, mOutputData, mOutputSym, mOutputVars, mDecomp;
 
 		public string Input { get { return mInput; } }
 		public string Output { get { return mOutput; } }
@@ -13,11 +14,13 @@ namespace arookas {
 		public bool OutputData { get { return mOutputData; } }
 		public bool OutputSym { get { return mOutputSym; } }
 		public bool OutputVars { get { return mOutputVars; } }
+        public bool OutputSun {  get { return mDecomp; } }
 
 		public CommandLineSettings(aCommandLine cmd) {
 			if (cmd == null) {
 				throw new ArgumentNullException("cmd");
 			}
+            mDecomp = false;
 			foreach (var param in cmd) {
 				switch (param.Name) {
 					case "-in": mInput = param[0]; continue;
@@ -32,8 +35,13 @@ namespace arookas {
 					case "-s": mOutputSym = false; continue;
 					case "-V": mOutputVars = true; continue;
 					case "-v": mOutputVars = false; continue;
+                    case "-sun": mDecomp = true; continue;
 				}
 			}
+            ///Debug///
+            //mInput = "C:\\Users\\August\\Downloads\\Sunshine ROM hacking\\ssc\\Decompile\\talkevent.sb";
+            //mDecomp = true;
+            ///Debug///
 			if (mInput == null) {
 				throw new Exception("Missing input file setting.");
 			}
@@ -41,5 +49,5 @@ namespace arookas {
 				mOutput = Path.ChangeExtension(mInput, ".txt");
 			}
 		}
-	}
+    }
 }
