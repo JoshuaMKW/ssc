@@ -23,30 +23,6 @@ namespace arookas {
 			"ret", "ret0", "jne", "jmp", "pop", "int0", "int1", "end",
 		};
 
-        public struct CodeLine
-        {
-            public string Text;
-            public long Address;
-
-
-            public CodeLine(string txt, long addr)
-            {
-                Text = txt;
-                Address = addr;
-            }
-        }
-
-        public struct JumpStatement
-        {
-            public long StartAddress;
-            public long EndAddress;
-            public JumpStatement(long addr1, long addr2)
-            {
-                StartAddress = addr1;
-                EndAddress = addr2;
-            }
-        }
-
         static int Main(string[] args) {
 #if !DEBUG
 			try {
@@ -276,7 +252,7 @@ namespace arookas {
         static void WriteSun()
         {
             Console.WriteLine("Decompiling sb file...");
-            DecompFunction(0u);//Decompile main part.
+            
             var symbols = new Symbol[sSymCount];
             for (var i = 0; i < sSymCount; ++i)
             {
@@ -285,21 +261,25 @@ namespace arookas {
 
 			foreach (var symbol in symbols.Where(i => i.Type == SymbolType.Function).OrderBy(i => i.Data))
             {
-				sWriter.WriteLine("{0}: ", FetchSymbolName(symbol));
-				DecompFunction(symbol.Data);
-			}
+                sWriter.WriteLine();
+                sWriter.WriteLine("function "+ FetchSymbolName(symbol)+  "(...)" + Environment.NewLine+ "{");
+				DecompFunction(symbol.Data, 1);
+                sWriter.WriteLine("}");
+                sWriter.WriteLine();
+            }
+
+            DecompFunction(0u, 0);//Decompile main part.
+
         }
 
-        static void DecompFunction(uint ofs)
+        static void DecompFunction(uint ofs, int IndentL)
         {
             byte command;
             sReader.Keep();
             sReader.Goto(sTextOffset + ofs);
             var maxofs = 0u;
             Stack<string> Stack = new Stack<string>();
-            List<CodeLine> DecompiledCode = new List<CodeLine>();
-            List<JumpStatement> IfStatements = new List<JumpStatement>();
-            List<JumpStatement> JmpStatements = new List<JumpStatement>();
+            CodeGraph FuncCodeGraph = new CodeGraph();
             do
             {
                 var pos = sReader.Position - sTextOffset;
@@ -355,8 +335,8 @@ namespace arookas {
                         }
                     case 0x08: //add
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " + " + Op2 + ")");
                             break;
                         }
@@ -369,8 +349,8 @@ namespace arookas {
                         }
                     case 0x0A: //mul
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " * " + Op2 + ")");
                             break;
                         }
@@ -399,21 +379,21 @@ namespace arookas {
                                 case 0: VariableName = FetchSymbolName(FetchSymbol(i => i.Type == SymbolType.Variable && i.Data == data)); break;
                                 case 1: VariableName =  "local" + data.ToString(); break;
                             }
-                            CodeLine NewLine = new CodeLine(VariableName + " = " + Stack.Pop() + ";", pos);
-                            DecompiledCode.Add(NewLine);
+                            CodeVertex NewLine = new CodeVertex(VertexType.CodeBlock , -1, VariableName + " = " + Stack.Pop() + ";", pos);
+                            FuncCodeGraph.AddVertex(NewLine);
                             break;
                         }
                     case 0x0E: //eq
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " == " + Op2 + ")");
                             break;
                         }
                     case 0x0F: //ne
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " != " + Op2 + ")");
                             break;
                         }
@@ -546,14 +526,15 @@ namespace arookas {
                     case 0x20: //ret
                         {
                             string Op = Stack.Pop();
-                            CodeLine NewLine = new CodeLine("return " + Op + ";", pos);
-                            DecompiledCode.Add(NewLine);
+                            CodeVertex NewLine = new CodeVertex(VertexType.CodeBlock , -1, "return " + Op + ";", pos);
+                            FuncCodeGraph.AddVertex(NewLine);
+
                             break;
                         }
                     case 0x21: //ret0
                         {
-                            CodeLine NewLine = new CodeLine("return 0;", pos);
-                            DecompiledCode.Add(NewLine);
+                            CodeVertex NewLine = new CodeVertex(VertexType.CodeBlock, -1, "return 0;", pos);
+                            FuncCodeGraph.AddVertex(NewLine);
                             break;
                         }
                     case 0x22: //jne
@@ -561,23 +542,24 @@ namespace arookas {
                             var dest = sReader.Read32();
                             nextofs = dest;
                             string Op = Stack.Pop();
-                            CodeLine NewLine = new CodeLine("if(" + Op + "){",pos);
-                            IfStatements.Add(new JumpStatement(pos, dest));
-                            DecompiledCode.Add(NewLine);
+                            CodeVertex NewLine = new CodeVertex(VertexType.ConditionalBranch, dest, Op, pos);
+                            FuncCodeGraph.AddVertex(NewLine);
+
                             break;
                         }
                     case 0x23: //jmp
                         {
                             var dest = sReader.Read32();
                             nextofs = dest;
-                            JmpStatements.Add(new JumpStatement(pos, dest));
+                            CodeVertex NewLine = new CodeVertex(VertexType.Branch, dest, "", pos);
+                            FuncCodeGraph.AddVertex(NewLine);
                             break;
                         }
                     case 0x24: //pop
                         {
                             string Op = Stack.Pop();
-                            CodeLine NewLine = new CodeLine(Op + ";", pos);
-                            DecompiledCode.Add(NewLine);
+                            CodeVertex NewLine = new CodeVertex(VertexType.CodeBlock, -1, Op + ";", pos);
+                            FuncCodeGraph.AddVertex(NewLine);
                             break;
                         }
                     case 0x25: //int0
@@ -597,90 +579,16 @@ namespace arookas {
                 }
             } while (!IsReturnCommand(command) || sReader.Position <= sTextOffset + maxofs);
 
-            WriteCode(DecompiledCode, IfStatements, JmpStatements);
+            WriteCode(FuncCodeGraph, IndentL);
 
             sWriter.WriteLine();
 
             sReader.Back();
         }
 
-        static void WriteCode(List<CodeLine> DecompCode, List<JumpStatement> Ifs, List<JumpStatement> Jumps)
+        static void WriteCode(CodeGraph FuncCodeGraph, int Indent)
         {
-
-            //Close if statements
-            foreach (JumpStatement IfStatement in Ifs)
-            {
-                CodeLine NewLine;
-                for (int i = DecompCode.Count-1; i > 0; i--)
-                {
-                    if (IfStatement.EndAddress < DecompCode[i].Address)//close address
-                    {
-                        continue;
-                    }
-                    NewLine = new CodeLine("}", IfStatement.EndAddress);
-                    DecompCode.Insert(i + 1, NewLine);
-                    break;
-                }
-            }
-
-
-            //ImplementBreaks
-            for (int i = 0; i < DecompCode.Count; i++)
-            {
-                if (i < DecompCode.Count - 1)
-                {
-                    foreach (JumpStatement Jump in Jumps)
-                    {
-                        bool AddLabel = false;
-                        bool AddBreak = false;
-                        CodeLine Label = new CodeLine("", 0);
-                        CodeLine Break = new CodeLine("", 0);
-                        if (Jump.EndAddress >= DecompCode[i].Address && Jump.EndAddress < DecompCode[i + 1].Address)//add label
-                        {
-                            Label = new CodeLine(Jump.EndAddress.ToString("X8") + ":", Jump.EndAddress);
-                            AddLabel = true;
-                        }
-                        if (Jump.StartAddress >= DecompCode[i].Address && Jump.StartAddress < DecompCode[i + 1].Address)//add break
-                        {
-                            Break = new CodeLine("break " + Jump.EndAddress.ToString("X8") + ";", Jump.StartAddress);
-                            AddBreak = true;
-                        }
-                        if (AddLabel)
-                        {
-                            DecompCode.Insert(i + 1, Label);
-                            i++;
-                        }
-                        if (AddBreak)
-                        {
-                            DecompCode.Insert(i + 1, Break);
-                            i++;
-                        }
-                    }
-                }
-            }
-
-            int Indent = 0;
-            //Indentation
-            for (int i = 0; i < DecompCode.Count; i++)
-            {
-                string IndentedString = new String(' ', Indent * 4) + DecompCode[i].Text;
-                if (DecompCode[i].Text.StartsWith("if"))
-                {
-                    Indent++;
-                }
-                else if (DecompCode[i].Text.StartsWith("}"))
-                {
-                    Indent = System.Math.Max(0, Indent - 1);
-                    IndentedString = new String(' ', Indent * 4) + DecompCode[i].Text;
-                }
-                DecompCode[i] = new CodeLine(IndentedString, DecompCode[i].Address);
-                
-            }
-
-            for (int i = 0; i < DecompCode.Count; i++)
-            {
-                sWriter.WriteLine(DecompCode[i].Text);
-            }
+            sWriter.Write(FuncCodeGraph.OutputCode(Indent));
         }
 
         static uint FetchData(int i) {

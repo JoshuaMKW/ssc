@@ -39,8 +39,8 @@ namespace arookas {
 				}
 			}
             ///Debug///
-            //mInput = "C:\\Users\\August\\Downloads\\Sunshine ROM hacking\\ssc\\Decompile\\talkevent.sb";
-            //mDecomp = true;
+            mInput = "C:\\Users\\August\\Downloads\\Sunshine ROM hacking\\ssc\\Decompile\\talkevent.sb";
+            mDecomp = true;
             ///Debug///
 			if (mInput == null) {
 				throw new Exception("Missing input file setting.");
