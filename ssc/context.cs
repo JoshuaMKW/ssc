@@ -21,7 +21,6 @@ namespace arookas {
 		public sunCallableSymbol Unlock { get; private set; }
 
 		// system variables
-		public sunStorableSymbol Switch { get; private set; }
 
 		public sunContext() {
 			DataTable = new sunDataTable();
@@ -196,9 +195,6 @@ namespace arookas {
 			Exit = AddSystemBuiltin("exit");
 			Lock = AddSystemBuiltin("lock");
 			Unlock = AddSystemBuiltin("unlock");
-
-			// add system variables
-			Switch = AddSystemVariable("switch"); // storage for switch statements
 		}
 		sunCallableSymbol AddSystemBuiltin(string name) {
 			var symbol = new sunBuiltinSymbol(name, SymbolTable.Count);
