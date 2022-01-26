@@ -189,7 +189,7 @@ namespace arookas {
 
 		public override void Compile(sunCompiler compiler, sunStorableSymbol symbol) {
 			symbol.CompileInc(compiler);
-			symbol.CompileSet(compiler);
+			symbol.CompilePop(compiler);
 		}
 	}
 
@@ -199,7 +199,7 @@ namespace arookas {
 
 		public override void Compile(sunCompiler compiler, sunStorableSymbol symbol) {
 			symbol.CompileDec(compiler);
-			symbol.CompileSet(compiler);
+			symbol.CompilePop(compiler);
 		}
 	}
 }

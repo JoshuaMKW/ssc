@@ -90,6 +90,20 @@ namespace arookas {
 		}
 	}
 
+	class sunVariablePopSite : sunSymbolRelocation<sunVariableSymbol> {
+		public sunVariablePopSite(sunBinary binary, sunVariableSymbol symbol)
+			: base(binary, symbol) {
+			mBinary.WritePOP();
+		}
+
+		public override void Relocate() {
+			mBinary.Keep();
+			mBinary.Goto(mPoint);
+			mBinary.WritePOP();
+			mBinary.Back();
+		}
+	}
+
 	class sunVariableIncSite : sunSymbolRelocation<sunVariableSymbol> {
 		public sunVariableIncSite(sunBinary binary, sunVariableSymbol symbol)
 			: base(binary, symbol) {

@@ -255,6 +255,7 @@ namespace arookas {
 		}
 		public abstract void CompileGet(sunCompiler compiler);
 		public abstract void CompileSet(sunCompiler compiler);
+		public abstract void CompilePop(sunCompiler compiler);
 		public virtual void CompileInc(sunCompiler compiler) {
 			CompileGet(compiler);
 			compiler.Binary.WriteINT(1);
@@ -304,6 +305,9 @@ namespace arookas {
 		}
 		public override void CompileDec(sunCompiler compiler) {
 			OpenRelocation(new sunVariableDecSite(compiler.Binary, this));
+		}
+		public override void CompilePop(sunCompiler compiler) {
+			OpenRelocation(new sunVariablePopSite(compiler.Binary, this));
 		}
 	}
 

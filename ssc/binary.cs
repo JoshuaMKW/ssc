@@ -184,6 +184,7 @@ namespace arookas {
 			TraceInstruction("inc {0} {1}", display, index);
 #endif
 			mText.Writer.Write8(0x06);
+			mText.Writer.Write8(0x04);
 			mText.Writer.WriteS32(display);
 			mText.Writer.WriteS32(index);
 		}
@@ -192,6 +193,7 @@ namespace arookas {
 			TraceInstruction("dec {0} {1}", display, index);
 #endif
 			mText.Writer.Write8(0x07);
+			mText.Writer.Write8(0x04);
 			mText.Writer.WriteS32(display);
 			mText.Writer.WriteS32(index);
 		}
