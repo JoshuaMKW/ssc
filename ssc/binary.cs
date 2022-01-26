@@ -184,18 +184,14 @@ namespace arookas {
 			TraceInstruction("inc {0} {1}", display, index);
 #endif
 			mText.Writer.Write8(0x06);
-			mText.Writer.Write8(0x04);
-			mText.Writer.WriteS32(display);
-			mText.Writer.WriteS32(index);
+			WriteVAR(display, index);
 		}
 		public override void WriteDEC(int display, int index) {
 #if DEBUG
 			TraceInstruction("dec {0} {1}", display, index);
 #endif
 			mText.Writer.Write8(0x07);
-			mText.Writer.Write8(0x04);
-			mText.Writer.WriteS32(display);
-			mText.Writer.WriteS32(index);
+			WriteVAR(display, index);
 		}
 		public override void WriteADD() {
 #if DEBUG

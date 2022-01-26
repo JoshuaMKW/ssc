@@ -158,8 +158,8 @@ namespace arookas {
 					}
 					case 0x03: sWriter.Write(" ${0:X8}", sReader.Read32()); break;
 					case 0x04: WriteVar(); break;
-					case 0x06: WriteVar(); break;
-					case 0x07: WriteVar(); break;
+					case 0x06: break;
+					case 0x07: break;
 					case 0x0D: {
 						sReader.Read8(); // TSpcInterp skips this byte
 						WriteVar();
@@ -294,7 +294,7 @@ namespace arookas {
                         }
                     case 0x01: //flt
                         {
-                            Stack.Push(sReader.ReadF32().ToString());
+                            Stack.Push(sReader.ReadF32().ToString("0.0###############"));
                             break;
                         }
                     case 0x02: //str
@@ -302,12 +302,12 @@ namespace arookas {
 
                             var data = sReader.ReadS32();
                             var value = FetchDataValue(data);
-                            Stack.Push("\"" + value +"\"");
+                            Stack.Push("\"" + value.Replace("\n", "\\n") +"\"");
                             break;
                         }
                     case 0x03: //adr
                         {
-                            Stack.Push(sReader.ReadS32().ToString("X8"));
+                            Stack.Push("$" + sReader.ReadS32().ToString("X8"));
                             break;
                         }
                     case 0x04: //var
@@ -317,20 +317,32 @@ namespace arookas {
                             switch (display)
                             {
                                 case 0: Stack.Push(FetchSymbolName(FetchSymbol(i => i.Type == SymbolType.Variable && i.Data == data))); break;
-                                case 1: Stack.Push("local" + data.ToString()); break;
+                                case 1: Stack.Push("local " + data.ToString()); break;
                             }
                             break;
                         }
                     case 0x06: //inc
                         {
-                            string Op = Stack.Pop();
-                            Stack.Push("(" + Op + "+1)");
+                            sReader.ReadS8(); // Ignore inline var
+                            var display = sReader.ReadS32();
+                            var data = sReader.ReadS32();
+                            switch (display)
+                            {
+                                case 0: Stack.Push("++" + FetchSymbolName(FetchSymbol(i => i.Type == SymbolType.Variable && i.Data == data))); break;
+                                case 1: Stack.Push("++" + data.ToString()); break;
+                            }
                             break;
                         }
                     case 0x07: //dec
                         {
-                            string Op = Stack.Pop();
-                            Stack.Push("(" + Op + "-1)");
+                            sReader.ReadS8(); // Ignore inline var
+                            var display = sReader.ReadS32();
+                            var data = sReader.ReadS32();
+                            switch (display)
+                            {
+                                case 0: Stack.Push("--" + FetchSymbolName(FetchSymbol(i => i.Type == SymbolType.Variable && i.Data == data))); break;
+                                case 1: Stack.Push("--" + data.ToString()); break;
+                            }
                             break;
                         }
                     case 0x08: //add
@@ -342,8 +354,8 @@ namespace arookas {
                         }
                     case 0x09: //sub
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " - " + Op2 + ")");
                             break;
                         }
@@ -356,15 +368,15 @@ namespace arookas {
                         }
                     case 0x0B: //div
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " / " + Op2 + ")");
                             break;
                         }
                     case 0x0C: //mod
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " % " + Op2 + ")");
                             break;
                         }
@@ -376,8 +388,8 @@ namespace arookas {
                             string VariableName = "";
                             switch (display)
                             {
-                                case 0: VariableName = FetchSymbolName(FetchSymbol(i => i.Type == SymbolType.Variable && i.Data == data)); break;
-                                case 1: VariableName =  "local" + data.ToString(); break;
+                                case 0: VariableName = "var " + FetchSymbolName(FetchSymbol(i => i.Type == SymbolType.Variable && i.Data == data)); break;
+                                case 1: VariableName =  "var local " + data.ToString(); break;
                             }
                             CodeVertex NewLine = new CodeVertex(VertexType.CodeBlock , -1, VariableName + " = " + Stack.Pop() + ";", pos);
                             FuncCodeGraph.AddVertex(NewLine);
@@ -399,29 +411,29 @@ namespace arookas {
                         }
                     case 0x10: //gt
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " > " + Op2 + ")");
                             break;
                         }
                     case 0x11: //lt
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " < " + Op2 + ")");
                             break;
                         }
                     case 0x12: //ge
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " >= " + Op2 + ")");
                             break;
                         }
                     case 0x13: //le
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " <= " + Op2 + ")");
                             break;
                         }
@@ -439,43 +451,43 @@ namespace arookas {
                         }
                     case 0x16: //and
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " && " + Op2 + ")");
                             break;
                         }
                     case 0x17: //or
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " || " + Op2 + ")");
                             break;
                         }
                     case 0x18: //band
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " & " + Op2 + ")");
                             break;
                         }
                     case 0x19: //bor
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " ^ " + Op2 + ")");
                             break;
                         }
                     case 0x1A: //shl
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " << " + Op2 + ")");
                             break;
                         }
                     case 0x1B: //shr
                         {
-                            string Op1 = Stack.Pop();
                             string Op2 = Stack.Pop();
+                            string Op1 = Stack.Pop();
                             Stack.Push("(" + Op1 + " >> " + Op2 + ")");
                             break;
                         }

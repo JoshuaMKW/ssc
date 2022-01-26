@@ -333,8 +333,14 @@ namespace arookas {
 		public override void CompileGet(sunCompiler compiler) {
 			mExpression.Compile(compiler);
 		}
+
 		public override void CompileSet(sunCompiler compiler) {
 			// checks against this have to be implemented at a higher level
+			throw new InvalidOperationException();
+		}
+
+        public override void CompilePop(sunCompiler compiler)
+        {
 			throw new InvalidOperationException();
 		}
 	}
