@@ -153,7 +153,7 @@ namespace arookas {
 					case 0x02: {
 						var data = sReader.ReadS32();
 						var value = FetchDataValue(data);
-						sWriter.Write(" {0} # \"{1}\"", data, value);
+						sWriter.Write(" {0} # \"{1}\"", data, value.Replace("\n", "\\n"));
 						break;
 					}
 					case 0x03: sWriter.Write(" ${0:X8}", sReader.Read32()); break;
@@ -219,7 +219,7 @@ namespace arookas {
 			for (var i = 0; i < sDataCount; ++i) {
 				var ofs = sReader.Read32();
 				var data = FetchDataValue(ofs);
-				sWriter.WriteLine("  .string \"{0}\"", data);
+				sWriter.WriteLine("  .string \"{0}\"", data.Replace("\n", "\\n"));
 			}
 			sWriter.WriteLine();
 		}
@@ -280,6 +280,7 @@ namespace arookas {
             var maxofs = 0u;
             Stack<string> Stack = new Stack<string>();
             CodeGraph FuncCodeGraph = new CodeGraph();
+            HashSet<string> DeclaredTable = new HashSet<string>();
             do
             {
                 var pos = sReader.Position - sTextOffset;
@@ -388,8 +389,26 @@ namespace arookas {
                             string VariableName = "";
                             switch (display)
                             {
-                                case 0: VariableName = "var " + FetchSymbolName(FetchSymbol(i => i.Type == SymbolType.Variable && i.Data == data)); break;
-                                case 1: VariableName =  "var local " + data.ToString(); break;
+                                case 0:
+                                    {
+                                        VariableName = FetchSymbolName(FetchSymbol(i => i.Type == SymbolType.Variable && i.Data == data));
+                                        if (!DeclaredTable.Contains(VariableName))
+                                        {
+                                            DeclaredTable.Add(VariableName);
+                                            VariableName = "var " + VariableName;
+                                        }
+                                        break;
+                                    }
+                                case 1:
+                                    {
+                                        VariableName = data.ToString();
+                                        if (!DeclaredTable.Contains(VariableName))
+                                        {
+                                            DeclaredTable.Add(VariableName);
+                                            VariableName = "var local " + VariableName;
+                                        }
+                                        break;
+                                    }
                             }
                             CodeVertex NewLine = new CodeVertex(VertexType.CodeBlock , -1, VariableName + " = " + Stack.Pop() + ";", pos);
                             FuncCodeGraph.AddVertex(NewLine);
